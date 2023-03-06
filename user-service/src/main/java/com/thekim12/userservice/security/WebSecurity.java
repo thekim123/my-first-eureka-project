@@ -9,6 +9,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 
@@ -25,29 +26,28 @@ public class WebSecurity {
     SecurityFilterChain configure(HttpSecurity http) throws Exception {
         return http
                 .csrf().disable()
-                .authorizeRequests(authorize -> authorize
-                        .antMatchers("/user/**")
-                        .hasIpAddress("192.168.0.6")
-                        .and()
-                        .addFilter(getAuthenticationFilter(http)))
                 .headers().frameOptions().disable()
                 .and()
+                .apply(new MyCustomDsl())
+                .and()
+                .authorizeRequests(authorize -> authorize
+                        .antMatchers("/user/**")
+                        .hasIpAddress("192.168.0.6"))
                 .build();
     }
 
     // select pwd from users where email=?
     // pwd.matches(input_pwd)
-    @Bean
     protected void configure(AuthenticationManagerBuilder auth) throws Exception {
         auth.userDetailsService(userService).passwordEncoder(bCryptPasswordEncoder);
     }
 
-    private AuthenticationFilter getAuthenticationFilter(HttpSecurity http) {
-        AuthenticationManager authenticationManager = http.getSharedObject(AuthenticationManager.class);
-        AuthenticationFilter authenticationFilter = new AuthenticationFilter();
-        authenticationFilter.setAuthenticationManager(authenticationManager);
-        return authenticationFilter;
+    public class MyCustomDsl extends AbstractHttpConfigurer<MyCustomDsl, HttpSecurity> {
+        @Override
+        public void configure(HttpSecurity builder) throws Exception {
+            AuthenticationManager authenticationManager = builder.getSharedObject(AuthenticationManager.class);
+            builder.addFilter(new AuthenticationFilter(authenticationManager, userService, environment));
+        }
     }
-
 
 }

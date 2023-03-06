@@ -25,7 +25,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        UserEntity userEntity = userRepository.findByUsername(username).orElseThrow(() -> {
+        UserEntity userEntity = userRepository.findByEmail(username).orElseThrow(() -> {
             throw new RuntimeException("회원 정보가 존재하지 않습니다.");
         });
 
@@ -65,5 +65,14 @@ public class UserServiceImpl implements UserService {
     @Override
     public Iterable<UserEntity> getUserByAll() {
         return userRepository.findAll();
+    }
+
+    @Override
+    public UserDto getUserDetailByUsername(String email) {
+        UserEntity userEntity = userRepository.findByEmail(email).orElseThrow(() -> {
+            throw new RuntimeException("user를 찾을수없습니다.");
+        });
+
+        return new ModelMapper().map(userEntity, UserDto.class);
     }
 }
